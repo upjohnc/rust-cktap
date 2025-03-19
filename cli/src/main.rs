@@ -37,6 +37,7 @@ enum SatsCardCommand {
     Unseal,
     /// Get the payment address and verify it follows from the chain code and master public key
     Derive,
+    Sign,
 }
 
 /// TapSigner CLI
@@ -62,6 +63,10 @@ enum TapSignerCommand {
     /// Derive a public key at the given hardened path
     Derive {
         /// path, eg. for 84'/0'/0'/* use 84,0,0
+        #[clap(short, long, value_delimiter = ',', num_args = 1..)]
+        path: Vec<u32>,
+    },
+    Sign {
         #[clap(short, long, value_delimiter = ',', num_args = 1..)]
         path: Vec<u32>,
     },
@@ -102,6 +107,9 @@ fn main() -> Result<(), Error> {
                 SatsCardCommand::Derive => {
                     dbg!(&sc.derive());
                 }
+                SatsCardCommand::Sign => {
+                    dbg!(&sc.sign(cvc()));
+                }
             }
         }
         CkTapCard::TapSigner(ts) | CkTapCard::SatsChip(ts) => {
@@ -119,6 +127,9 @@ fn main() -> Result<(), Error> {
                 }
                 TapSignerCommand::Derive { path } => {
                     dbg!(&ts.derive(path, cvc()));
+                }
+                TapSignerCommand::Sign { path } => {
+                    dbg!(&ts.sign(path, cvc()));
                 }
             }
         }

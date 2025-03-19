@@ -507,7 +507,7 @@ impl ResponseApdu for NfcResponse {}
 pub struct SignCommand {
     cmd: String,
     slot: Option<u8>,
-    subpath: Option<[u32; 2]>,
+    subpath: Option<Vec<u32>>,
     // additional keypath for TapSigner only
     #[serde(with = "serde_bytes")]
     digest: Vec<u8>,
@@ -519,19 +519,25 @@ pub struct SignCommand {
 }
 
 impl SignCommand {
-    // pub fn for_satscard(slot: Option<u8>, digest: Vec<u8>, epubkey: Vec<u8>, xcvc: Vec<u8>) -> Self {
-    //     Self {
-    //         cmd: "sign".to_string(),
-    //         slot,
-    //         digest,
-    //         subpath: None,
-    //         epubkey,
-    //         xcvc,
-    //     }
-    // }
+    pub fn for_satscard(
+        slot: Option<u8>,
+        digest: Vec<u8>,
+        epubkey: Vec<u8>,
+        xcvc: Vec<u8>,
+    ) -> Self {
+        let cmd = Self::name();
+        Self {
+            cmd,
+            slot,
+            digest,
+            subpath: None,
+            epubkey,
+            xcvc,
+        }
+    }
 
     pub fn for_tapsigner(
-        subpath: Option<[u32; 2]>,
+        subpath: Option<Vec<u32>>,
         digest: Vec<u8>,
         epubkey: PublicKey,
         xcvc: Vec<u8>,

@@ -293,6 +293,37 @@ impl<T: CkTransport> SatsCard<T> {
         resp
     }
 
+    pub fn sign(&mut self, cvc: String) -> Result<SignResponse, Error> {
+        let card_nonce = self.card_nonce().clone();
+        let app_nonce = rand_nonce();
+        let (_, epubkey, xcvc) = self.calc_ekeys_xcvc(cvc, &SignCommand::name());
+        let cmd = SignCommand::for_satscard(
+            self.slot(),
+            vec![1, 1, 1],
+            epubkey.serialize().to_vec(),
+            // self.message_digest(card_nonce, app_nonce),
+            // epubkey,
+            xcvc,
+        );
+        let resp: Result<SignResponse, Error> = self.transport().transmit(cmd);
+
+        if let Ok(r) = &resp {
+            self.set_card_nonce(r.card_nonce.clone());
+
+            // Verify signature
+            let mut message_bytes: Vec<u8> = Vec::new();
+            message_bytes.extend("OPENDIME".as_bytes());
+            message_bytes.extend(card_nonce);
+            message_bytes.extend(app_nonce);
+            let message = Message::from_hashed_data::<sha256::Hash>(message_bytes.as_slice());
+            let signature = Signature::from_compact(r.sig.as_slice())
+                .expect("Failed to construct ECDSA signature from check response");
+            let pubkey = PublicKey::from_slice(r.pubkey.as_slice())?;
+            self.secp().verify_ecdsa(&message, &signature, &pubkey)?;
+        }
+        resp
+    }
+
     pub fn unseal(&mut self, slot: u8, cvc: String) -> Result<UnsealResponse, Error> {
         let (_, epubkey, xcvc) = self.calc_ekeys_xcvc(cvc, &UnsealCommand::name());
         let epubkey = epubkey.serialize().to_vec();
